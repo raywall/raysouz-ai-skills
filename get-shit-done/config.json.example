@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(python scripts/validate_iupipes.py)"
+    ],
+    "deny": [
+      "Exec(sudo)",
+      "Write(**/.env*)"
+    ],
+    "ask": [
+      "Write(**/iupipes.yaml)"
+    ]
+  }
+}
