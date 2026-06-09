@@ -2,14 +2,14 @@
   "permissions": {
     "allow": [
       "Read(**)",
-      "Exec(python scripts/validate_iupipes.py)"
+      "Exec(python scripts/validate_config.py)"
     ],
     "deny": [
       "Exec(sudo)",
       "Write(**/.env*)"
     ],
     "ask": [
-      "Write(**/iupipes.yaml)"
+      "Write(**/.config.yaml)"
     ]
   }
 }
