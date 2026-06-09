@@ -1,4 +1,4 @@
-# Go DDD Cloud Skills — README
+# AI Skills — README
 
 Ecossistema de skills para desenvolvimento de serviços Go em AWS usando DDD, Clean Architecture,
 resiliência, observabilidade, FinOps e exposição de dados para LLMs via MCP.
@@ -13,15 +13,21 @@ Compatível com **Claude Code**, **Devin** e **OpenAI Codex** (codex CLI).
 |---|---|---|
 | `custom-business-metrics` | `custom-business-metrics/SKILL.md` | Instrumentar métricas, desenhar dashboards, criar queries de widgets, usar filtros, trace e correlation id. |
 | `ddd-context-mapping` | `ddd-context-mapping/SKILL.md` | Antes de qualquer código: domínios, bounded contexts, aggregates, eventos |
+| `github-actions-go` | `github-actions-go/SKILL.md` | Workflows de CI, CD, releases semânticos, publicação no pkg.go.dev e OIDC com AWS. |
 | `go-clean-architecture` | `go-clean-architecture/SKILL.md` | Estrutura de diretórios, camadas, ports & adapters, DI |
 | `go-concurrency-patterns` | `go-concurrency-patterns/SKILL.md` | goroutines, channels, worker pool, pipeline, errgroup |
+| `frontend-design` | `frontend-design/SKILL.md` | Design de interfaces frontend, componentes, UX patterns, acessibilidade e consistência visual. |
 | `go-doc-standards` | `go-doc-standards/SKILL.md` | File headers, GoDoc, documentação de todos os identificadores exportados |
 | `go-graphql-connector` | `go-graphql-connector/SKILL.md` | Criar `service.json`, `schema.json`, `connectors.json`, mocks, queries GraphQL e bootstrap local/Lambda do conector. |
+| `go-test-excellence` | `go-test-excellence/SKILL.md` | Estratégias avançadas de teste em Go: pirâmide de testes, contract testing, mutation testing e qualidade de suite. |
+| `go-testing-excellence` | `go-testing-excellence/SKILL.md` | TDD, table-driven tests, mocks, HTTP handler tests, benchmarks, fuzz tests, golden files, cobertura. |
 | `go-microservices-aws` | `go-microservices-aws/SKILL.md` | Lambda vs ECS, resiliência, SQS/SNS/EventBridge |
 | `mcp-llm-exposure` | `mcp-llm-exposure/SKILL.md` | Servidor MCP em Go, tools/resources/prompts, segurança, outputs LLM-friendly |
+| `mobile-ios-design` | `mobile-ios-design/SKILL.md` | Design de apps iOS, padrões nativos UIKit/SwiftUI, HIG da Apple e experiência mobile. |
 | `observability-finops` | `observability-finops/SKILL.md` | slog, OpenTelemetry, X-Ray, CloudWatch, SLOs, FinOps |
 | `routing-slip-runtime` | `routing-slip-runtime/SKILL.md` | Gerar `config.yaml`, `main.go`, Lambda handler, configuração de trigger, state store, idempotência, métricas e MCP. |
 | `routing-slip-workflow` | `routing-slip-workflow/SKILL.md` | Criar, revisar, compor ou explicar workflows YAML do `routing-slip-pattern`. |
+| `terraform-aws-deploy` | `terraform-aws-deploy/SKILL.md` | Módulos Terraform para Lambda, ECS, DynamoDB, SQS, IAM least-privilege, remote state, FinOps tags e checkov. |
 | `workflow-architecture` | `workflow-architecture/SKILL.md` | Projetar uma solução ponta a ponta usando os três projetos de forma integrada. |
 
 ---
@@ -29,29 +35,41 @@ Compatível com **Claude Code**, **Devin** e **OpenAI Codex** (codex CLI).
 ## Ordem de Aplicação (Fluxo Padrão)
 
 ```
-1. ddd-context-mapping        → Estabelecer fronteiras de domínio
-        ↓
-2. workflow-architecture      → Projetar a solução ponta a ponta (se houver orquestração)
-        ↓
-3. go-clean-architecture      → Estruturar camadas do serviço
-        ↓
-4. go-microservices-aws       → Decidir compute (Lambda/ECS) e integração assíncrona
-        ↓
-5. routing-slip-workflow      → Modelar workflows YAML de orquestração (se aplicável)
-        ↓
-6. routing-slip-runtime       → Gerar runtime do conector/handler (se aplicável)
-        ↓
-7. go-graphql-connector       → Construir o conector GraphQL (se aplicável)
-        ↓
-8. go-concurrency-patterns    → Aplicar concorrência segura onde necessário
-        ↓
-9. observability-finops       → Instrumentar logging, tracing, métricas e custo
-        ↓
-10. custom-business-metrics   → Adicionar métricas de negócio e dashboards
-        ↓
-11. go-doc-standards          → Documentar todo código exportado
-        ↓
-12. mcp-llm-exposure          → Expor dados para agentes LLM via MCP (se aplicável)
+1.  ddd-context-mapping        → Estabelecer fronteiras de domínio
+         ↓
+2.  workflow-architecture      → Projetar a solução ponta a ponta (se houver orquestração)
+         ↓
+3.  go-clean-architecture      → Estruturar camadas do serviço
+         ↓
+4.  go-microservices-aws       → Decidir compute (Lambda/ECS) e integração assíncrona
+         ↓
+5.  routing-slip-workflow      → Modelar workflows YAML de orquestração (se aplicável)
+         ↓
+6.  routing-slip-runtime       → Gerar runtime do conector/handler (se aplicável)
+         ↓
+7.  go-graphql-connector       → Construir o conector GraphQL (se aplicável)
+         ↓
+8.  go-concurrency-patterns    → Aplicar concorrência segura onde necessário
+         ↓
+9.  observability-finops       → Instrumentar logging, tracing, métricas e custo
+         ↓
+10. custom-business-metrics    → Adicionar métricas de negócio e dashboards
+         ↓
+11. go-doc-standards           → Documentar todo código exportado
+         ↓
+12. go-testing-excellence    → Escrever e revisar testes (unit, integration, bench, fuzz)
+         ↓
+13. terraform-aws-deploy       → Provisionar infraestrutura AWS com Terraform
+         ↓
+14. github-actions-go          → Configurar CI/CD, releases e publicação no pkg.go.dev
+         ↓
+15. mcp-llm-exposure           → Expor dados para agentes LLM via MCP (se aplicável)
+         ↓
+16. go-test-excellence         → Aplicar estratégias avançadas de qualidade de suite de testes
+         ↓
+17. frontend-design            → Projetar interfaces frontend com UX patterns e acessibilidade (se aplicável)
+         ↓
+18. mobile-ios-design          → Projetar features iOS com padrões nativos UIKit/SwiftUI (se aplicável)
 ```
 
 ---
@@ -70,6 +88,10 @@ your-service/
 │       │   └── SKILL.md
 │       ├── ddd-context-mapping/
 │       │   └── SKILL.md
+│       ├── github-actions-go/
+│       │   └── SKILL.md
+│       ├── frontend-design/
+│       │   └── SKILL.md
 │       ├── go-clean-architecture/
 │       │   └── SKILL.md
 │       ├── go-concurrency-patterns/
@@ -80,7 +102,13 @@ your-service/
 │       │   └── SKILL.md
 │       ├── go-microservices-aws/
 │       │   └── SKILL.md
+│       ├── go-test-excellence/
+│       │   └── SKILL.md
+│       ├── go-testing-excellence/
+│       │   └── SKILL.md
 │       ├── mcp-llm-exposure/
+│       │   └── SKILL.md
+│       ├── mobile-ios-design/
 │       │   └── SKILL.md
 │       ├── observability-finops/
 │       │   └── SKILL.md
@@ -88,10 +116,13 @@ your-service/
 │       │   └── SKILL.md
 │       ├── routing-slip-workflow/
 │       │   └── SKILL.md
+│       ├── terraform-aws-deploy/
+│       │   └── SKILL.md
 │       └── workflow-architecture/
 │           └── SKILL.md
 ├── internal/
 ├── cmd/
+├── infra/
 └── go.mod
 ```
 
@@ -109,26 +140,35 @@ This is a Go service following DDD, Clean Architecture, and AWS best practices.
 
 Before generating any code, read the relevant skill files in `.claude/skills/`:
 
-- Designing domains or service boundaries      → read `ddd-context-mapping/SKILL.md`
-- Designing an end-to-end solution             → read `workflow-architecture/SKILL.md`
-- Creating or modifying Go packages/layers     → read `go-clean-architecture/SKILL.md`
-- AWS infrastructure or service communication  → read `go-microservices-aws/SKILL.md`
-- Modeling orchestration workflows (YAML)      → read `routing-slip-workflow/SKILL.md`
-- Implementing routing-slip runtime or handler → read `routing-slip-runtime/SKILL.md`
-- Building or extending a GraphQL connector    → read `go-graphql-connector/SKILL.md`
-- Any goroutine, channel, or concurrent code   → read `go-concurrency-patterns/SKILL.md`
-- Adding logs, traces, metrics, or cost tags   → read `observability-finops/SKILL.md`
-- Adding business metrics or dashboards        → read `custom-business-metrics/SKILL.md`
-- Writing or reviewing any exported Go symbol  → read `go-doc-standards/SKILL.md`
-- Building or extending the MCP server         → read `mcp-llm-exposure/SKILL.md`
+- Designing domains or service boundaries        → read `ddd-context-mapping/SKILL.md`
+- Designing an end-to-end solution               → read `workflow-architecture/SKILL.md`
+- Creating or modifying Go packages/layers       → read `go-clean-architecture/SKILL.md`
+- AWS infrastructure or service communication    → read `go-microservices-aws/SKILL.md`
+- Modeling orchestration workflows (YAML)        → read `routing-slip-workflow/SKILL.md`
+- Implementing routing-slip runtime or handler   → read `routing-slip-runtime/SKILL.md`
+- Building or extending a GraphQL connector      → read `go-graphql-connector/SKILL.md`
+- Any goroutine, channel, or concurrent code     → read `go-concurrency-patterns/SKILL.md`
+- Adding logs, traces, metrics, or cost tags     → read `observability-finops/SKILL.md`
+- Adding business metrics or dashboards          → read `custom-business-metrics/SKILL.md`
+- Writing or reviewing any exported Go symbol    → read `go-doc-standards/SKILL.md`
+- Writing or reviewing any test file (*_test.go) → read `go-testing-excellence/SKILL.md`
+- Applying advanced Go test quality strategies   → read `go-test-excellence/SKILL.md`
+- Writing or modifying any Terraform (.tf) file  → read `terraform-aws-deploy/SKILL.md`
+- Writing or modifying GitHub Actions workflows  → read `github-actions-go/SKILL.md`
+- Building or extending the MCP server           → read `mcp-llm-exposure/SKILL.md`
+- Designing or modifying frontend UI/UX          → read `frontend-design/SKILL.md`
+- Designing or building iOS mobile features      → read `mobile-ios-design/SKILL.md`
 
 ## Non-Negotiable Standards
 
 - All exported identifiers must have GoDoc-compliant comments (go-doc-standards)
 - No layer may import a layer above it (go-clean-architecture)
 - Every goroutine must have a guaranteed exit path (go-concurrency-patterns)
-- All AWS resources must carry FinOps cost-allocation tags (observability-finops)
+- All AWS resources must carry FinOps cost-allocation tags (observability-finops, terraform-aws-deploy)
+- No static AWS credentials in GitHub Actions — use OIDC only (github-actions-go)
+- No `"*"` in IAM resource or action fields (terraform-aws-deploy)
 - Run `go test -race ./...` before considering any task complete
+- Domain and application layers must maintain ≥ 80% test coverage (go-testing-excellence)
 ```
 
 ### Acionamento manual por prompt
@@ -149,9 +189,27 @@ notification-sender como uma Lambda em Go.
 ```
 
 ```
+# Provisionar infraestrutura
+Leia .claude/skills/terraform-aws-deploy/SKILL.md e crie o módulo Terraform para
+o serviço orders-api como Lambda arm64 com DynamoDB, SQS e IAM least-privilege.
+```
+
+```
+# Configurar pipeline de release
+Leia .claude/skills/github-actions-go/SKILL.md e crie os workflows de CI,
+release semântico e deploy Lambda com OIDC para dev, staging e production.
+```
+
+```
 # Criar um workflow de orquestração
 Leia .claude/skills/routing-slip-workflow/SKILL.md e modele o workflow de
 processamento de pedidos com as etapas: validar, reservar-estoque, cobrar, notificar.
+```
+
+```
+# Criar testes para um use case
+Leia .claude/skills/go-testing-excellence/SKILL.md e escreva os testes completos
+para o PlaceOrderUseCase: table-driven, mocks de repositório e publisher, e benchmark.
 ```
 
 ```
@@ -248,9 +306,34 @@ Adicione cada skill como um documento de conhecimento no arquivo de configuraç�
   tags  = ["go", "godoc", "documentation", "comments", "headers"]
 
   [[knowledge.documents]]
+  path  = ".devin/skills/terraform-aws-deploy/SKILL.md"
+  title = "Terraform AWS Deploy"
+  tags  = ["terraform", "aws", "iac", "lambda", "ecs", "iam", "dynamodb", "finops", "remote-state"]
+
+  [[knowledge.documents]]
+  path  = ".devin/skills/github-actions-go/SKILL.md"
+  title = "GitHub Actions for Go"
+  tags  = ["github-actions", "ci", "cd", "release", "semver", "pkg.go.dev", "oidc", "goreleaser"]
+
+  [[knowledge.documents]]
   path  = ".devin/skills/mcp-llm-exposure/SKILL.md"
   title = "MCP Server & LLM Exposure"
   tags  = ["mcp", "llm", "ai", "tools", "resources", "prompts"]
+
+  [[knowledge.documents]]
+  path  = ".devin/skills/go-test-excellence/SKILL.md"
+  title = "Go Test Excellence"
+  tags  = ["go", "testing", "quality", "mutation", "contract", "test-suite"]
+
+  [[knowledge.documents]]
+  path  = ".devin/skills/frontend-design/SKILL.md"
+  title = "Frontend Design"
+  tags  = ["frontend", "ui", "ux", "design", "components", "accessibility"]
+
+  [[knowledge.documents]]
+  path  = ".devin/skills/mobile-ios-design/SKILL.md"
+  title = "Mobile iOS Design"
+  tags  = ["ios", "mobile", "SwiftUI", "UIKit", "apple", "hig", "design"]
 ```
 
 ### Opção B — instrução no prompt de sessão (Devin Playbooks)
@@ -283,11 +366,23 @@ Crie um playbook `.devin/playbooks/new-go-service.md` para onboarding de novos s
 
 ## While writing code
 
-- For any goroutine or channel → read `go-concurrency-patterns/SKILL.md` first.
-- For any log, metric, or trace → read `observability-finops/SKILL.md` first.
-- For business-level metrics and dashboards → read `custom-business-metrics/SKILL.md`.
-- For every exported Go identifier → apply `go-doc-standards/SKILL.md` — no exceptions.
-- For MCP tool or resource → read `mcp-llm-exposure/SKILL.md`.
+- For any goroutine or channel           → read `go-concurrency-patterns/SKILL.md` first.
+- For any log, metric, or trace          → read `observability-finops/SKILL.md` first.
+- For business-level metrics/dashboards  → read `custom-business-metrics/SKILL.md`.
+- For every exported Go identifier       → apply `go-doc-standards/SKILL.md` — no exceptions.
+- For MCP tool or resource               → read `mcp-llm-exposure/SKILL.md`.
+
+## While writing tests
+
+- For any *_test.go file → read `go-testing-excellence/SKILL.md` — all 10 patterns apply.
+- For advanced test quality → read `go-test-excellence/SKILL.md`.
+
+## Infrastructure & delivery
+
+- For any .tf file                       → read `terraform-aws-deploy/SKILL.md` first.
+- For any .github/workflows/*.yml file   → read `github-actions-go/SKILL.md` first.
+- For any frontend UI/UX work            → read `frontend-design/SKILL.md` first.
+- For any iOS mobile feature             → read `mobile-ios-design/SKILL.md` first.
 
 ## Before marking task as complete
 
@@ -297,6 +392,11 @@ Crie um playbook `.devin/playbooks/new-go-service.md` para onboarding de novos s
 - [ ] All exported identifiers have GoDoc comments
 - [ ] All AWS resources have FinOps cost-allocation tags
 - [ ] Business metrics instrumented and dashboard widgets documented
+- [ ] `go test -race ./...` passes with zero races detected
+- [ ] Coverage ≥ 80% on domain and application layers
+- [ ] `terraform validate` and `tfsec` pass with no HIGH/CRITICAL findings
+- [ ] GitHub Actions workflows use OIDC (no static AWS credentials)
+- [ ] Release workflow validates semver, runs tests, and notifies Go module proxy
 ```
 
 ### Estrutura de diretórios para Devin
@@ -307,23 +407,32 @@ your-service/
 │   ├── skills/
 │   │   ├── custom-business-metrics/SKILL.md
 │   │   ├── ddd-context-mapping/SKILL.md
+│   │   ├── github-actions-go/SKILL.md
+│   │   ├── frontend-design/SKILL.md
 │   │   ├── go-clean-architecture/SKILL.md
 │   │   ├── go-concurrency-patterns/SKILL.md
 │   │   ├── go-doc-standards/SKILL.md
 │   │   ├── go-graphql-connector/SKILL.md
 │   │   ├── go-microservices-aws/SKILL.md
+│   │   ├── go-test-excellence/SKILL.md
+│   │   ├── go-testing-excellence/SKILL.md
 │   │   ├── mcp-llm-exposure/SKILL.md
+│   │   ├── mobile-ios-design/SKILL.md
 │   │   ├── observability-finops/SKILL.md
 │   │   ├── routing-slip-runtime/SKILL.md
 │   │   ├── routing-slip-workflow/SKILL.md
+│   │   ├── terraform-aws-deploy/SKILL.md
 │   │   └── workflow-architecture/SKILL.md
 │   └── playbooks/
 │       ├── new-go-service.md
 │       ├── add-observability.md
 │       ├── add-workflow.md
-│       └── add-graphql-connector.md
+│       ├── add-graphql-connector.md
+│       ├── provision-infra.md
+│       └── setup-cicd.md
 ├── internal/
 ├── cmd/
+├── infra/
 └── go.mod
 ```
 
@@ -361,7 +470,13 @@ Skill files are located in `.codex/skills/`.
 | Logging, tracing, metrics, cost tags | `observability-finops/SKILL.md` |
 | Business metrics, dashboards, widgets | `custom-business-metrics/SKILL.md` |
 | Any exported Go type, func, or method | `go-doc-standards/SKILL.md` |
+| Any *_test.go file, TDD, benchmarks, fuzz | `go-testing-excellence/SKILL.md` |
+| Advanced Go test quality strategies | `go-test-excellence/SKILL.md` |
+| Any Terraform (.tf) file | `terraform-aws-deploy/SKILL.md` |
+| Any GitHub Actions workflow (.yml) | `github-actions-go/SKILL.md` |
 | MCP server, LLM tool/resource design | `mcp-llm-exposure/SKILL.md` |
+| Frontend UI/UX design and components | `frontend-design/SKILL.md` |
+| iOS mobile features and design | `mobile-ios-design/SKILL.md` |
 
 ## Coding Standards
 
@@ -369,9 +484,11 @@ Skill files are located in `.codex/skills/`.
 - Every goroutine must have a guaranteed termination path
 - Every exported identifier must carry a GoDoc comment starting with its own name
 - All AWS resources must carry the FinOps cost-allocation tags defined in observability-finops
+- No `"*"` in IAM resource or action fields — always explicit ARN and action list
 - Business metrics must follow the naming convention in custom-business-metrics
 - Tests must pass with `go test -race ./...`
 - Lint must pass with `golangci-lint run ./...`
+- Terraform must pass `terraform validate` and `tfsec` with no HIGH/CRITICAL findings
 
 ## Forbidden Patterns
 
@@ -381,6 +498,14 @@ Skill files are located in `.codex/skills/`.
 - Importing a domain package from an infrastructure package
 - Shared database tables across bounded contexts
 - Metrics without correlation ID or trace ID linkage
+- Static AWS credentials in GitHub Actions (use OIDC)
+- Hardcoded AWS credentials or secrets in any Terraform file or tfvars
+- IAM policies with `"Resource": "*"` or `"Action": "*"`
+- Lambda functions without explicit timeout and DLQ
+- Go module tags without the `v` prefix (e.g. `1.2.3` instead of `v1.2.3`)
+- `time.Sleep` in tests for synchronisation (use channels or `require.Eventually`)
+- Calling `time.Now()` in domain/application code without Clock injection
+- Missing `t.Helper()` in test helper functions
 ```
 
 ### Opção B — profile global do Codex (`~/.codex/instructions.md`)
@@ -406,7 +531,13 @@ read the relevant `SKILL.md` files before acting:
 - Observability & cost               → `observability-finops/SKILL.md`
 - Business metrics & dashboards      → `custom-business-metrics/SKILL.md`
 - Code documentation                 → `go-doc-standards/SKILL.md`
-- MCP / LLM integration              → `mcp-llm-exposure/SKILL.md`
+- Tests, TDD, benchmarks, fuzz         → `go-testing-excellence/SKILL.md`
+- Advanced Go test quality            → `go-test-excellence/SKILL.md`
+- Terraform infrastructure            → `terraform-aws-deploy/SKILL.md`
+- GitHub Actions CI/CD & releases     → `github-actions-go/SKILL.md`
+- MCP / LLM integration               → `mcp-llm-exposure/SKILL.md`
+- Frontend UI/UX design               → `frontend-design/SKILL.md`
+- iOS mobile design                   → `mobile-ios-design/SKILL.md`
 ```
 
 ### Opção C — injeção via `codex.json`
@@ -438,18 +569,25 @@ your-service/
 │   └── skills/
 │       ├── custom-business-metrics/SKILL.md
 │       ├── ddd-context-mapping/SKILL.md
+│       ├── github-actions-go/SKILL.md
+│       ├── frontend-design/SKILL.md
 │       ├── go-clean-architecture/SKILL.md
 │       ├── go-concurrency-patterns/SKILL.md
 │       ├── go-doc-standards/SKILL.md
 │       ├── go-graphql-connector/SKILL.md
 │       ├── go-microservices-aws/SKILL.md
+│       ├── go-test-excellence/SKILL.md
+│       ├── go-testing-excellence/SKILL.md
 │       ├── mcp-llm-exposure/SKILL.md
+│       ├── mobile-ios-design/SKILL.md
 │       ├── observability-finops/SKILL.md
 │       ├── routing-slip-runtime/SKILL.md
 │       ├── routing-slip-workflow/SKILL.md
+│       ├── terraform-aws-deploy/SKILL.md
 │       └── workflow-architecture/SKILL.md
 ├── internal/
 ├── cmd/
+├── infra/
 └── go.mod
 ```
 
@@ -464,15 +602,21 @@ monorepo/
 ├── .skills/                                ← skills centralizadas
 │   ├── custom-business-metrics/SKILL.md
 │   ├── ddd-context-mapping/SKILL.md
+│   ├── frontend-design/SKILL.md
+│   ├── github-actions-go/SKILL.md
 │   ├── go-clean-architecture/SKILL.md
 │   ├── go-concurrency-patterns/SKILL.md
 │   ├── go-doc-standards/SKILL.md
 │   ├── go-graphql-connector/SKILL.md
 │   ├── go-microservices-aws/SKILL.md
+│   ├── go-test-excellence/SKILL.md
+│   ├── go-testing-excellence/SKILL.md
 │   ├── mcp-llm-exposure/SKILL.md
+│   ├── mobile-ios-design/SKILL.md
 │   ├── observability-finops/SKILL.md
 │   ├── routing-slip-runtime/SKILL.md
 │   ├── routing-slip-workflow/SKILL.md
+│   ├── terraform-aws-deploy/SKILL.md
 │   └── workflow-architecture/SKILL.md
 ├── services/
 │   ├── orders/
@@ -483,6 +627,9 @@ monorepo/
 │       ├── .claude/
 │       │   └── CLAUDE.md
 │       └── AGENTS.md
+├── infra/                                  ← Terraform centralizado ou por serviço
+│   ├── modules/
+│   └── environments/
 └── README.md
 ```
 
@@ -503,7 +650,13 @@ Read skills from the monorepo root before acting:
 - Observability & cost     → `../../.skills/observability-finops/SKILL.md`
 - Business metrics         → `../../.skills/custom-business-metrics/SKILL.md`
 - Documentation            → `../../.skills/go-doc-standards/SKILL.md`
+- Tests & TDD              → `../../.skills/go-testing-excellence/SKILL.md`
+- Advanced test quality    → `../../.skills/go-test-excellence/SKILL.md`
+- Terraform infrastructure → `../../.skills/terraform-aws-deploy/SKILL.md`
+- GitHub Actions CI/CD     → `../../.skills/github-actions-go/SKILL.md`
 - MCP / LLM exposure       → `../../.skills/mcp-llm-exposure/SKILL.md`
+- Frontend UI/UX           → `../../.skills/frontend-design/SKILL.md`
+- iOS mobile design        → `../../.skills/mobile-ios-design/SKILL.md`
 ```
 
 ---
@@ -516,6 +669,8 @@ Read skills from the monorepo root before acting:
 | AWS SDK for Go | v2 (aws-sdk-go-v2) |
 | OpenTelemetry Go | v1.x |
 | golangci-lint | v1.57+ |
+| Terraform | 1.7+ |
+| tfsec / checkov | latest |
 | Claude Code CLI | latest |
 | Devin | plano Teams ou Enterprise |
-| Codex CLI | latest (`npm i -g @openai/codex`) |# raysouz-ai-skills
+| Codex CLI | latest (`npm i -g @openai/codex`) |

@@ -1,0 +1,332 @@
+---
+name: go-microservices-aws
+description: >
+  Use this skill when designing or implementing Go microservices or nano-services on AWS. Triggers include:
+  defining service granularity (micro vs nano), choosing AWS compute targets (ECS, Lambda, EKS), designing
+  for resilience (circuit breakers, retries, bulkheads, timeouts), service-to-service communication patterns
+  (SNS/SQS, API Gateway, EventBridge, gRPC), infrastructure-as-code for Go services, or any mention of
+  "microservice", "nano-service", "Lambda", "ECS", "SQS", "SNS", "EventBridge", "service mesh", or
+  "AWS" in the context of Go service design. Apply before generating any infrastructure or service code.
+---
+
+# Go Microservices & Nano-Services on AWS
+
+Act as a principal cloud architect. Service boundaries and compute choices made here ripple into cost, latency,
+and operational burden for years. Be explicit and justify every structural decision.
+
+---
+
+## Phase 1 — Granularity Decision: Micro vs Nano
+
+### When to use a Microservice (long-running process: ECS/Fargate or EKS)
+- Handles high, sustained RPS (> ~100 req/s steady state)
+- Needs WebSockets, streaming, or long-lived connections
+- Has complex state or background workers (goroutine pool, cron)
+- Latency SLA < 50ms (cold start is unacceptable)
+- Team owns the full lifecycle; separate CI/CD is justified
+
+### When to use a Nano-Service (event-driven: Lambda)
+- Sporadic or bursty invocation pattern
+- Single-responsibility handler (one event type → one action)
+- Stateless; all state in external stores (DynamoDB, S3, ElastiCache)
+- Cold start acceptable (< 1s with Provisioned Concurrency if not)
+- FinOps: pay-per-invocation preferred over always-on
+
+### Decision matrix
+
+| Factor | Nano (Lambda) | Micro (ECS) |
+|---|---|---|
+| Invocation pattern | Bursty / sparse | Steady / high RPS |
+| Cold start tolerance | Yes (or use PC) | No |
+| Binary size concern | Yes (< 50 MB) | No |
+| Long connections | No | Yes |
+| FinOps default | ✅ Prefer | Only if justified |
+
+---
+
+## Phase 2 — Go Lambda Structure (Nano-Service)
+
+```go
+// Package main is the entry point for the ProcessOrderEvent Lambda function.
+// It handles OrderPlaced events from the Orders SNS topic via SQS subscription.
+package main
+
+import (
+    "context"
+    "encoding/json"
+
+    "github.com/aws/aws-lambda-go/events"
+    "github.com/aws/aws-lambda-go/lambda"
+    "go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-lambda-go/otellambda"
+)
+
+// handler is the Lambda handler struct; dependencies are injected at init time.
+type handler struct {
+    useCase port.ProcessOrderEventUseCase
+    tracer  trace.Tracer
+    logger  *slog.Logger
+}
+
+// Handle processes a batch of SQS messages containing OrderPlaced events.
+// Each message is processed independently; failed messages are returned as batch item failures.
+func (h *handler) Handle(ctx context.Context, event events.SQSEvent) (events.SQSEventResponse, error) {
+    resp := events.SQSEventResponse{}
+    for _, msg := range event.Records {
+        if err := h.processRecord(ctx, msg); err != nil {
+            h.logger.ErrorContext(ctx, "failed to process record",
+                slog.String("messageId", msg.MessageId),
+                slog.String("error", err.Error()),
+            )
+            resp.BatchItemFailures = append(resp.BatchItemFailures,
+                events.SQSBatchItemFailure{ItemIdentifier: msg.MessageId},
+            )
+        }
+    }
+    return resp, nil
+}
+
+func main() {
+    h := initHandler()  // cold-start init
+    lambda.Start(otellambda.InstrumentHandler(h.Handle))
+}
+```
+
+### Lambda FinOps Tuning
+
+```go
+// init() runs once per container lifetime — heavy initializations go here.
+var (
+    _handler *handler
+    _once    sync.Once
+)
+
+func initHandler() *handler {
+    _once.Do(func() {
+        cfg    := configs.LoadFromEnv()
+        dynamo := persistence.NewDynamoClient(cfg.AWS)      // reused across invocations
+        // ... build dependency graph
+        _handler = &handler{...}
+    })
+    return _handler
+}
+```
+
+**Lambda configuration targets:**
+
+| Setting | Value | Reason |
+|---|---|---|
+| Memory | Start 256 MB; tune with Lambda Power Tuning | CPU scales with memory |
+| Timeout | 3× p99 latency of downstream calls | Never unbounded |
+| Reserved Concurrency | Set per function | Prevent noisy-neighbor |
+| Provisioned Concurrency | Only if p99 cold start > SLA | Costs money |
+| ARM64 (Graviton) | Always prefer | 20% cheaper, 20% faster for Go |
+
+---
+
+## Phase 3 — Go ECS Microservice Structure
+
+```go
+// Package main is the entrypoint for the Orders microservice.
+// It starts the HTTP server, registers health endpoints, and handles graceful shutdown.
+package main
+
+func main() {
+    ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+    defer stop()
+
+    cfg := configs.Load()
+    app := wire.InitApp(cfg)     // generated by google/wire or hand-rolled
+
+    srv := &http.Server{
+        Addr:         cfg.Addr,
+        Handler:      app.Router(),
+        ReadTimeout:  5 * time.Second,
+        WriteTimeout: 10 * time.Second,
+        IdleTimeout:  120 * time.Second,
+    }
+
+    go func() {
+        if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+            slog.Error("server error", "err", err)
+            stop()
+        }
+    }()
+
+    <-ctx.Done()
+    shutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+    _ = srv.Shutdown(shutCtx)   // drain in-flight requests
+}
+```
+
+---
+
+## Phase 4 — Resilience Patterns
+
+### 4.1 Timeout + Context Propagation
+
+Always propagate context; never use `context.Background()` inside handlers:
+
+```go
+// callDownstream wraps every outbound call with an explicit timeout.
+// The parent context deadline is respected; the local timeout only tightens it.
+func (s *Service) callDownstream(ctx context.Context, id string) (Result, error) {
+    ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+    defer cancel()
+    return s.client.Get(ctx, id)
+}
+```
+
+### 4.2 Retry with Exponential Backoff + Jitter
+
+```go
+// retry executes fn up to maxAttempts times with exponential backoff and full jitter.
+// Only retries errors classified as retryable (transient network / throttle errors).
+func retry(ctx context.Context, maxAttempts int, fn func(context.Context) error) error {
+    var err error
+    for attempt := range maxAttempts {
+        if err = fn(ctx); err == nil { return nil }
+        if !isRetryable(err) { return err }
+
+        wait := min(baseDelay*time.Duration(1<<attempt), maxDelay)
+        jitter := time.Duration(rand.Int63n(int64(wait)))   // full jitter
+        select {
+        case <-time.After(jitter):
+        case <-ctx.Done(): return ctx.Err()
+        }
+    }
+    return err
+}
+```
+
+### 4.3 Circuit Breaker
+
+Use `github.com/sony/gobreaker` or implement:
+
+```go
+// CircuitBreaker wraps an outbound client with open/half-open/closed state management.
+// It opens after consecutiveFailures threshold and resets after resetTimeout.
+type CircuitBreaker struct {
+    mu                  sync.Mutex
+    state               cbState
+    consecutiveFailures int
+    lastFailure         time.Time
+    // config
+    failureThreshold int
+    resetTimeout     time.Duration
+}
+
+// Execute calls fn through the circuit breaker.
+// Returns ErrCircuitOpen if the circuit is open.
+func (cb *CircuitBreaker) Execute(fn func() error) error { ... }
+```
+
+### 4.4 Bulkhead (Worker Pool)
+
+```go
+// workerPool limits concurrent downstream calls to protect shared resources.
+// sem acts as a counting semaphore (bulkhead).
+type workerPool struct{ sem chan struct{} }
+
+// Do acquires a slot, runs fn, and releases the slot.
+// Blocks if all slots are taken; respects ctx cancellation.
+func (p *workerPool) Do(ctx context.Context, fn func() error) error {
+    select {
+    case p.sem <- struct{}{}:
+        defer func() { <-p.sem }()
+        return fn()
+    case <-ctx.Done():
+        return ctx.Err()
+    }
+}
+```
+
+---
+
+## Phase 5 — Async Communication (SNS/SQS/EventBridge)
+
+### Publishing (Outbox Pattern — guaranteed delivery)
+
+```go
+// OutboxPublisher writes domain events to the outbox table atomically with the aggregate.
+// A separate relay process reads the outbox and publishes to SNS.
+// This guarantees at-least-once delivery without distributed transactions.
+type OutboxPublisher struct {
+    dynamo    *dynamodb.Client
+    tableName string
+}
+
+// Publish writes an event entry to the DynamoDB outbox table in the same transaction as the aggregate.
+func (p *OutboxPublisher) Publish(ctx context.Context, tx *dynamodb.TransactWriteItemsInput, evt domain.DomainEvent) {
+    item, _ := attributevalue.MarshalMap(outboxRecord{
+        PK:        "OUTBOX#" + evt.AggregateID(),
+        SK:        evt.OccurredAt().Format(time.RFC3339Nano),
+        EventType: evt.EventType(),
+        Payload:   mustMarshalJSON(evt),
+        Status:    "PENDING",
+        Version:   evt.EventVersion(),
+    })
+    tx.TransactItems = append(tx.TransactItems, types.TransactWriteItem{
+        Put: &types.Put{TableName: &p.tableName, Item: item},
+    })
+}
+```
+
+### SQS Consumer (with batch item failure)
+
+Always return batch item failures — never fail the whole batch:
+
+```go
+// processSQSEvent handles an SQS batch and returns per-message failure results.
+// Messages that succeed are implicitly deleted; failures are returned for requeue.
+func processSQSEvent(ctx context.Context, event events.SQSEvent, handler MessageHandler) events.SQSEventResponse {
+    resp := events.SQSEventResponse{}
+    g, gCtx := errgroup.WithContext(ctx)
+    mu := sync.Mutex{}
+
+    for _, msg := range event.Records {
+        msg := msg
+        g.Go(func() error {
+            if err := handler.Handle(gCtx, msg); err != nil {
+                mu.Lock()
+                resp.BatchItemFailures = append(resp.BatchItemFailures,
+                    events.SQSBatchItemFailure{ItemIdentifier: msg.MessageId})
+                mu.Unlock()
+            }
+            return nil  // never propagate error to errgroup; handle per-message
+        })
+    }
+    _ = g.Wait()
+    return resp
+}
+```
+
+---
+
+## Phase 6 — Service Mesh & Discovery
+
+For ECS services:
+- **Internal**: AWS Cloud Map for service discovery; App Mesh for mTLS + circuit breaker
+- **External**: API Gateway (REST/HTTP) or ALB for ingress
+
+```
+[API GW] → [ALB] → [ECS Service A] → Cloud Map → [ECS Service B]
+                                   ↘ SNS/SQS → [Lambda C]
+```
+
+---
+
+## Resilience & Scalability Checklist
+
+- [ ] Every outbound call has an explicit timeout
+- [ ] Retries use exponential backoff with full jitter
+- [ ] Circuit breaker wraps every unreliable dependency
+- [ ] SQS consumers return batch item failures (not whole-batch failures)
+- [ ] Outbox pattern used for domain event publication
+- [ ] Lambda functions use ARM64 (Graviton2)
+- [ ] Lambda memory tuned with AWS Lambda Power Tuning tool
+- [ ] ECS tasks have `ReadTimeout`, `WriteTimeout`, `IdleTimeout` set
+- [ ] Graceful shutdown with SIGTERM handler and drain timeout
+- [ ] Reserved concurrency set on every Lambda to prevent cascade
+- [ ] DLQ configured on every SQS queue and Lambda async invocation
+- [ ] All Go binaries built with `CGO_ENABLED=0 GOARCH=arm64 GOOS=linux`
