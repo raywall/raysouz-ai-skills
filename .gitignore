@@ -1,4 +1,4 @@
 .DS_Store
 instructions.md
-product-context/
-software-architect/
+product-context/*.md
+software-architect/*.md
