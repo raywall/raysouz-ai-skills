@@ -4,13 +4,16 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -29,14 +32,53 @@ func NewClient(token string) *Client {
 	}
 }
 
+// ListSkills lists directories under skills/ at the requested repository ref.
+func (c *Client) ListSkills(ctx context.Context, owner, repository, ref string) ([]string, error) {
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/skills?ref=%s", owner, repository, url.QueryEscape(ref))
+	resp, err := c.get(ctx, endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("list skills: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var entries []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
+		return nil, fmt.Errorf("decode skills response: %w", err)
+	}
+	skills := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Type == "dir" {
+			skills = append(skills, entry.Name)
+		}
+	}
+	sort.Strings(skills)
+	return skills, nil
+}
+
 // DownloadSkill downloads and extracts skills/<skill> from a GitHub repository.
 func (c *Client) DownloadSkill(ctx context.Context, owner, repository, ref, skill, destination string) error {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/tarball/%s", owner, repository, ref)
+	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/tarball/%s", owner, repository, ref)
+	resp, err := c.get(ctx, endpoint)
+	if err != nil {
+		return fmt.Errorf("download repository: %w", err)
+	}
+	defer resp.Body.Close()
+	if err := extractSkill(resp.Body, skill, destination); err != nil {
+		return fmt.Errorf("extract skill %q: %w", skill, err)
+	}
+	return nil
+}
+
+func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return fmt.Errorf("create GitHub request: %w", err)
+		return nil, fmt.Errorf("create GitHub request: %w", err)
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	req.Header.Set("User-Agent", "rayskills")
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
@@ -44,17 +86,14 @@ func (c *Client) DownloadSkill(ctx context.Context, owner, repository, ref, skil
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("download repository: %w", err)
+		return nil, fmt.Errorf("request GitHub: %w", err)
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return fmt.Errorf("download repository: GitHub returned %s: %s", resp.Status, strings.TrimSpace(string(body)))
+		return nil, fmt.Errorf("GitHub returned %s: %s", resp.Status, strings.TrimSpace(string(body)))
 	}
-	if err := extractSkill(resp.Body, skill, destination); err != nil {
-		return fmt.Errorf("extract skill %q: %w", skill, err)
-	}
-	return nil
+	return resp, nil
 }
 
 func extractSkill(reader io.Reader, skill, destination string) error {
@@ -114,17 +153,16 @@ func extractSkill(reader io.Reader, skill, destination string) error {
 		}
 	}
 	if !found {
-		return errors.New("skill was not found in repository")
+		return errors.New("skill was not found under the repository skills/ directory; use --list-skills to see available skills")
 	}
 	return nil
 }
 
 func skillRelativePath(archivePath, skill string) (string, bool) {
-	for _, prefix := range []string{"skills/" + skill, skill} {
-		relative, ok := strings.CutPrefix(archivePath, prefix)
-		if ok && (relative == "" || strings.HasPrefix(relative, "/")) {
-			return strings.TrimPrefix(relative, "/"), true
-		}
+	prefix := "skills/" + skill
+	relative, ok := strings.CutPrefix(archivePath, prefix)
+	if ok && (relative == "" || strings.HasPrefix(relative, "/")) {
+		return strings.TrimPrefix(relative, "/"), true
 	}
 	return "", false
 }

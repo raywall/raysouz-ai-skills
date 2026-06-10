@@ -1,0 +1,58 @@
+name: Pull request validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  merge_group:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-candidate:
+    name: Validate release candidate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cmd/go.mod
+          cache-dependency-path: cmd/go.mod
+
+      - name: Test with race detector
+        working-directory: cmd
+        run: go test -race ./...
+
+      - name: Vet
+        working-directory: cmd
+        run: go vet ./...
+
+      - name: Build release candidate
+        working-directory: cmd
+        run: |
+          mkdir -p /tmp/rayskills-release-candidate
+          for target in \
+            linux/amd64 linux/arm64 \
+            windows/amd64 windows/arm64 \
+            darwin/amd64 darwin/arm64
+          do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            binary="/tmp/rayskills-release-candidate/rayskills-${goos}-${goarch}"
+            if [ "$goos" = "windows" ]; then
+              binary="${binary}.exe"
+            fi
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
+              go build -trimpath -o "$binary" .
+          done

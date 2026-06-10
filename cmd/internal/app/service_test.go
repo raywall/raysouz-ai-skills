@@ -12,6 +12,7 @@ import (
 type fakeSkillSource struct {
 	content string
 	called  bool
+	skills  []string
 }
 
 func (f *fakeSkillSource) DownloadSkill(_ context.Context, _, _, _, _, destination string) error {
@@ -20,6 +21,34 @@ func (f *fakeSkillSource) DownloadSkill(_ context.Context, _, _, _, _, destinati
 		return err
 	}
 	return os.WriteFile(filepath.Join(destination, "SKILL.md"), []byte(f.content), 0o644)
+}
+
+func (f *fakeSkillSource) ListSkills(_ context.Context, _, _, _ string) ([]string, error) {
+	f.called = true
+	return f.skills, nil
+}
+
+func TestServiceListSkills(t *testing.T) {
+	t.Parallel()
+
+	source := &fakeSkillSource{skills: []string{"ddd-context-mapping", "go-clean-architecture"}}
+	var output strings.Builder
+	service := NewService(source, &output)
+
+	err := service.Execute(context.Background(), Options{
+		ListSkills: true,
+		Owner:      "raywall",
+		Repository: "raysouz-ai-skills",
+		Ref:        "main",
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	for _, skill := range source.skills {
+		if !strings.Contains(output.String(), skill) {
+			t.Fatalf("output does not contain %q: %s", skill, output.String())
+		}
+	}
 }
 
 func TestServiceInstall(t *testing.T) {
