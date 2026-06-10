@@ -1,17 +1,22 @@
 # rayskills
 
-CLI em Go para instalar skills de `github.com/raywall/raysouz-ai-skills` no
-diretório global do modelo alvo. O layout novo `skills/<nome>` e o layout
-legado `<nome>` na raiz são suportados.
+CLI em Go para instalar skills da pasta
+`github.com/raywall/raysouz-ai-skills/tree/main/skills` no diretório global do
+modelo alvo.
 
 ## Uso
 
 ```bash
 go run . --model codex --skill go-clean-architecture
+go run . --list-skills
 go run . --model claude --skill ddd-context-mapping --os darwin
 go run . --model devin --skill workflow-architecture --force
 go run . --config devin
 ```
+
+`--list-skills` consulta a pasta `skills/` da referência informada por `--ref`
+e lista apenas as skills disponíveis no repositório. A instalação aceita
+somente skills existentes nessa pasta.
 
 Modelos suportados: `codex`, `claude`, `devin`, `cursor`, `gemini`, `windsurf`
 e `copilot`. Por padrão, uma skill é instalada em `~/.<model>/skills/<skill>`.
@@ -34,7 +39,32 @@ go test -race ./...
 ## Releases
 
 O workflow `.github/workflows/release.yml` publica binários para Linux, Windows
-e macOS, nas arquiteturas `amd64` e `arm64`. Para criar uma release:
+e macOS, nas arquiteturas `amd64` e `arm64`.
+
+O fluxo de promoção funciona assim:
+
+1. Um push em `develop` executa testes, vet e builds multiplataforma.
+2. Após sucesso, `.github/workflows/promote-develop.yml` cria ou atualiza o PR
+   de `develop` para `main` e ativa o auto-merge.
+3. O PR aguarda a aprovação obrigatória e o check `Validate release candidate`.
+4. O auto-merge integra o PR somente depois da aprovação e dos checks.
+5. Depois do merge confirmado na `main`, `.github/workflows/release.yml`
+   publica automaticamente a nova pre-release `v0.0.0-main.<run-number>`.
+
+Para esse fluxo funcionar, crie o secret `PROMOTION_TOKEN` com um fine-grained
+personal access token que tenha acesso ao repositório e permissões de leitura e
+escrita para `Contents` e `Pull requests`. O token é necessário para que o
+merge automático dispare o workflow de release na `main`.
+
+Também habilite auto-merge no repositório e configure a proteção da branch
+`main` com:
+
+- pull request obrigatório antes do merge;
+- pelo menos uma aprovação;
+- check obrigatório `Pull request validation / Validate release candidate`;
+- merge queue habilitada, se disponível no plano do repositório.
+
+Para criar manualmente uma release estável:
 
 ```bash
 git tag v1.0.0

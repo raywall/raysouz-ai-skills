@@ -23,22 +23,26 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags.SetOutput(stderr)
 
 	var opts app.Options
-	flags.StringVar(&opts.Model, "model", "", "target model: codex, claude, devin, cursor, gemini, windsurf, or copilot")
-	flags.StringVar(&opts.OS, "os", "auto", "target operating system: auto, darwin, linux, or windows")
-	flags.StringVar(&opts.Skill, "skill", "", "skill name under the repository skills/ directory")
-	flags.StringVar(&opts.Config, "config", "", "create .<model>/config.json in the current project")
 	flags.StringVar(&opts.Destination, "destination", "", "override the skills installation directory")
-	flags.StringVar(&opts.Owner, "owner", "raywall", "GitHub repository owner")
 	flags.StringVar(&opts.Repository, "repository", "raysouz-ai-skills", "GitHub repository name")
+	flags.StringVar(&opts.Config, "config", "", "create .<model>/config.json in the current project")
+	flags.StringVar(&opts.Skill, "skill", "", "skill name under the repository skills/ directory")
+	flags.StringVar(&opts.Model, "model", "", "target model: codex, claude, devin, cursor, gemini, windsurf, or copilot")
+	flags.StringVar(&opts.Owner, "owner", "raywall", "GitHub repository owner")
 	flags.StringVar(&opts.Ref, "ref", "main", "Git ref to download")
-	flags.BoolVar(&opts.Force, "force", false, "replace an existing installed skill or config")
+	flags.StringVar(&opts.OS, "os", "auto", "target operating system: auto, darwin, linux, or windows")
+
+	flags.BoolVar(&opts.ListSkills, "list-skills", false, "list skills available under the repository skills/ directory")
 	flags.BoolVar(&opts.DryRun, "dry-run", false, "print actions without writing files")
+	flags.BoolVar(&opts.Force, "force", false, "replace an existing installed skill or config")
+
 	showVersion := flags.Bool("version", false, "print version")
 
 	flags.Usage = func() {
 		fmt.Fprintln(stderr, "Install AI skills from github.com/raywall.")
 		fmt.Fprintln(stderr, "\nUsage:")
 		fmt.Fprintln(stderr, "  rayskills --model codex --skill go-clean-architecture")
+		fmt.Fprintln(stderr, "  rayskills --list-skills")
 		fmt.Fprintln(stderr, "  rayskills --config devin")
 		fmt.Fprintln(stderr, "\nFlags:")
 		flags.PrintDefaults()

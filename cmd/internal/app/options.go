@@ -12,4 +12,5 @@ type Options struct {
 	Ref         string
 	Force       bool
 	DryRun      bool
+	ListSkills  bool
 }

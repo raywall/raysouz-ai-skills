@@ -19,6 +19,7 @@ var validSkillName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 // SkillSource downloads a skill directory from a repository.
 type SkillSource interface {
 	DownloadSkill(ctx context.Context, owner, repository, ref, skill, destination string) error
+	ListSkills(ctx context.Context, owner, repository, ref string) ([]string, error)
 }
 
 // Service executes skill installation and model configuration use cases.
@@ -34,10 +35,28 @@ func NewService(source SkillSource, out io.Writer) *Service {
 
 // Execute validates options and runs either configuration or skill installation.
 func (s *Service) Execute(ctx context.Context, opts Options) error {
+	if opts.ListSkills {
+		return s.listSkills(ctx, opts)
+	}
 	if opts.Config != "" {
 		return s.configure(opts)
 	}
 	return s.install(ctx, opts)
+}
+
+func (s *Service) listSkills(ctx context.Context, opts Options) error {
+	skills, err := s.source.ListSkills(ctx, opts.Owner, opts.Repository, opts.Ref)
+	if err != nil {
+		return err
+	}
+	if len(skills) == 0 {
+		return errors.New("no skills found under the repository skills/ directory")
+	}
+	fmt.Fprintf(s.out, "Available skills in github.com/%s/%s/tree/%s/skills:\n", opts.Owner, opts.Repository, opts.Ref)
+	for _, skill := range skills {
+		fmt.Fprintf(s.out, "%s\n", skill)
+	}
+	return nil
 }
 
 func (s *Service) install(ctx context.Context, opts Options) error {

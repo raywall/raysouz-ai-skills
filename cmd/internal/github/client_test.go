@@ -4,9 +4,15 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestExtractSkill(t *testing.T) {
@@ -44,7 +50,7 @@ func TestExtractSkillNotFound(t *testing.T) {
 	}
 }
 
-func TestExtractSkillFromLegacyRootLayout(t *testing.T) {
+func TestExtractSkillRejectsLegacyRootLayout(t *testing.T) {
 	t.Parallel()
 
 	archive := makeArchive(t, map[string]string{
@@ -52,16 +58,55 @@ func TestExtractSkillFromLegacyRootLayout(t *testing.T) {
 	})
 	destination := filepath.Join(t.TempDir(), "example")
 
-	if err := extractSkill(bytes.NewReader(archive), "example", destination); err != nil {
-		t.Fatalf("extractSkill() error = %v", err)
+	if err := extractSkill(bytes.NewReader(archive), "example", destination); err == nil {
+		t.Fatal("expected error")
 	}
-	data, err := os.ReadFile(filepath.Join(destination, "SKILL.md"))
+}
+
+func TestClientListSkills(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/raywall/raysouz-ai-skills/contents/skills" {
+			t.Errorf("request path = %q", r.URL.Path)
+		}
+		if r.URL.Query().Get("ref") != "main" {
+			t.Errorf("ref = %q", r.URL.Query().Get("ref"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"name":"z-skill","type":"dir"},
+			{"name":"README.md","type":"file"},
+			{"name":"a-skill","type":"dir"}
+		]`))
+	}))
+	defer server.Close()
+
+	client := &Client{
+		httpClient: &http.Client{
+			Timeout:   time.Second,
+			Transport: rewriteTransport{baseURL: server.URL},
+		},
+	}
+	got, err := client.ListSkills(context.Background(), "raywall", "raysouz-ai-skills", "main")
 	if err != nil {
-		t.Fatalf("read extracted file: %v", err)
+		t.Fatalf("ListSkills() error = %v", err)
 	}
-	if string(data) != "# Legacy" {
-		t.Fatalf("SKILL.md = %q, want %q", data, "# Legacy")
+	want := []string{"a-skill", "z-skill"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ListSkills() = %v, want %v", got, want)
 	}
+}
+
+type rewriteTransport struct {
+	baseURL string
+}
+
+func (r rewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	clone := req.Clone(req.Context())
+	clone.URL.Scheme = "http"
+	clone.URL.Host = strings.TrimPrefix(r.baseURL, "http://")
+	return http.DefaultTransport.RoundTrip(clone)
 }
 
 func makeArchive(t *testing.T, files map[string]string) []byte {
