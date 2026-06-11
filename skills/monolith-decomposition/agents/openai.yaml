@@ -1,0 +1,7 @@
+interface:
+  display_name: "Monolith Decomposition"
+  short_description: "Propose or operate evidence-first decomposition"
+  default_prompt: "Use $monolith-decomposition to propose or operate an evidence-based decomposition of this monolith."
+
+policy:
+  allow_implicit_invocation: true

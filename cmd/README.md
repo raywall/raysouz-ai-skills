@@ -37,8 +37,29 @@ Ao informar um `--os` diferente do sistema em execução, informe também
 ## Build
 
 ```bash
-go build -o rayskills .
-go test -race ./...
+make build
+make test
+```
+
+O build é gerado em `bin/rayskills` ou `bin/rayskills.exe`.
+
+Para instalar o executável em `~/rayskills/bin` e adicionar esse diretório ao
+`PATH` do usuário:
+
+```bash
+make install
+```
+
+No Linux e macOS, abra um novo terminal ou carregue novamente o arquivo de perfil.
+No Windows, execute o Makefile em um ambiente com `make`, Go e PowerShell
+disponíveis e abra um novo terminal após a instalação.
+
+O instalador adiciona `~/rayskills/bin` ao `PATH` apenas uma vez.
+
+Para remover o executável instalado e a entrada de `PATH` criada:
+
+```bash
+make uninstall
 ```
 
 ## Releases

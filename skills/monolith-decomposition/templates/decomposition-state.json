@@ -1,0 +1,13 @@
+{
+  "mode": "propose",
+  "scope_confirmed": false,
+  "approved_sources_confirmed": false,
+  "clarifications_confirmed": false,
+  "current_state_confirmed": false,
+  "boundaries_approved": false,
+  "target_stack_approved": false,
+  "open_blocking_gaps": [
+    "GAP-001"
+  ],
+  "sensitive_data_reviewed": false
+}
