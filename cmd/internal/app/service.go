@@ -63,8 +63,15 @@ func (s *Service) install(ctx context.Context, opts Options) error {
 	if opts.Model == "" || opts.Skill == "" {
 		return fmt.Errorf("%w: --model and --skill are required for installation", ErrInvalidOptions)
 	}
-	if !validSkillName.MatchString(opts.Skill) {
-		return fmt.Errorf("%w: invalid skill name %q", ErrInvalidOptions, opts.Skill)
+	skillName := opts.Skill
+	if opts.Local {
+		var err error
+		skillName, err = localSkillName(opts.Skill)
+		if err != nil {
+			return err
+		}
+	} else if !validSkillName.MatchString(skillName) {
+		return fmt.Errorf("%w: invalid skill name %q", ErrInvalidOptions, skillName)
 	}
 
 	home, err := os.UserHomeDir()
@@ -75,12 +82,12 @@ func (s *Service) install(ctx context.Context, opts Options) error {
 	if err != nil {
 		return err
 	}
-	skillDestination := filepath.Join(destination, opts.Skill)
+	skillDestination := filepath.Join(destination, skillName)
 	if exists(skillDestination) && !opts.Force {
 		return fmt.Errorf("skill already exists at %s; use --force to replace it", skillDestination)
 	}
 
-	fmt.Fprintf(s.out, "Installing %s for %s at %s\n", opts.Skill, opts.Model, skillDestination)
+	fmt.Fprintf(s.out, "Installing %s for %s at %s\n", skillName, opts.Model, skillDestination)
 	if opts.DryRun {
 		return nil
 	}
@@ -95,9 +102,15 @@ func (s *Service) install(ctx context.Context, opts Options) error {
 	}
 	defer os.RemoveAll(temp)
 
-	downloaded := filepath.Join(temp, opts.Skill)
-	if err := s.source.DownloadSkill(ctx, opts.Owner, opts.Repository, opts.Ref, opts.Skill, downloaded); err != nil {
-		return err
+	staged := filepath.Join(temp, skillName)
+	if opts.Local {
+		if err := copyLocalSkill(opts.Skill, staged); err != nil {
+			return err
+		}
+	} else {
+		if err := s.source.DownloadSkill(ctx, opts.Owner, opts.Repository, opts.Ref, opts.Skill, staged); err != nil {
+			return err
+		}
 	}
 	if err := os.MkdirAll(destination, 0o755); err != nil {
 		return fmt.Errorf("create destination: %w", err)
@@ -107,10 +120,40 @@ func (s *Service) install(ctx context.Context, opts Options) error {
 			return fmt.Errorf("replace existing skill: %w", err)
 		}
 	}
-	if err := os.Rename(downloaded, skillDestination); err != nil {
+	if err := os.Rename(staged, skillDestination); err != nil {
 		return fmt.Errorf("install skill: %w", err)
 	}
 	fmt.Fprintf(s.out, "Installed %s\n", skillDestination)
+	return nil
+}
+
+func localSkillName(source string) (string, error) {
+	info, err := os.Stat(source)
+	if err != nil {
+		return "", fmt.Errorf("%w: access local skill directory %q: %v", ErrInvalidOptions, source, err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("%w: local skill path %q is not a directory", ErrInvalidOptions, source)
+	}
+	skillFile, err := os.Stat(filepath.Join(source, "SKILL.md"))
+	if err != nil || !skillFile.Mode().IsRegular() {
+		return "", fmt.Errorf("%w: local skill directory %q must contain SKILL.md", ErrInvalidOptions, source)
+	}
+	absolute, err := filepath.Abs(source)
+	if err != nil {
+		return "", fmt.Errorf("%w: resolve local skill directory %q: %v", ErrInvalidOptions, source, err)
+	}
+	name := filepath.Base(filepath.Clean(absolute))
+	if !validSkillName.MatchString(name) {
+		return "", fmt.Errorf("%w: invalid local skill directory name %q", ErrInvalidOptions, name)
+	}
+	return name, nil
+}
+
+func copyLocalSkill(source, destination string) error {
+	if err := os.CopyFS(destination, os.DirFS(source)); err != nil {
+		return fmt.Errorf("copy local skill %q: %w", source, err)
+	}
 	return nil
 }
 
