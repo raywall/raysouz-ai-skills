@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "analysis_name": "<name>",
+  "mode": "landscape",
+  "generated_at": "<timestamp>",
+  "last_verified": null,
+  "scope": "<scope>",
+  "excluded_systems": [],
+  "repositories": [],
+  "coverage": {
+    "systems": 0,
+    "domains": 0,
+    "capabilities": 0,
+    "journeys": 0,
+    "business_rules": 0,
+    "integrations": 0,
+    "data_sets": 0,
+    "risks": 0,
+    "opportunities": 0,
+    "gaps": 1,
+    "evidence": 0
+  }
+}
+

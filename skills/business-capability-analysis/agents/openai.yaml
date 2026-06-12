@@ -1,0 +1,5 @@
+interface:
+  display_name: "Business Capability Analysis"
+  short_description: "Analyze business behavior and solution capabilities"
+  default_prompt: "Analyze these repositories to explain the business, domains, capabilities, rules, integrations, risks, and improvement opportunities."
+
