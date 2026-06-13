@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "project_name": "<project-name>",
+  "created_at": "<iso-8601>",
+  "source_analysis": "<path>",
+  "scope": {
+    "capabilities": [],
+    "journeys": [],
+    "rules": []
+  },
+  "targets": [],
+  "stages": {
+    "functional": "pending",
+    "domain": "pending",
+    "services": "pending",
+    "generated": "pending",
+    "simulation": "pending",
+    "workflow": "pending"
+  },
+  "decisions": [],
+  "gaps": []
+}

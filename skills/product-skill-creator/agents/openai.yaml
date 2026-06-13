@@ -1,0 +1,5 @@
+interface:
+  display_name: "Product Skill Creator"
+  short_description: "Create evidence-backed product skills from repositories"
+  default_prompt: "Analyze these repositories as one product and generate or refresh a reusable product skill."
+

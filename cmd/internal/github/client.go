@@ -153,7 +153,7 @@ func extractSkill(reader io.Reader, skill, destination string) error {
 		}
 	}
 	if !found {
-		return errors.New("skill was not found under the repository skills/ directory; use --list-skills to see available skills")
+		return errors.New("skill was not found under the repository skills/ directory; use --list-sk to see available skills")
 	}
 	return nil
 }

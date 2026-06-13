@@ -1,0 +1,4 @@
+interface:
+  display_name: "GraphQL Connector Generator"
+  short_description: "Generate go-graphql-connector applications"
+  default_prompt: "Generate schema.json, connectors.json, service.json, and connector.go from the supplied integration specification."

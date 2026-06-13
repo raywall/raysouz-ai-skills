@@ -8,15 +8,20 @@ modelo alvo.
 
 ```bash
 go run . --model codex --skill go-clean-architecture
-go run . --list-skills
+go run . --list-sk
+go run . --model codex --local --skill ../skills/credito-trabalhador
 go run . --model claude --skill ddd-context-mapping --os darwin
 go run . --model devin --skill workflow-architecture --force
 go run . --config devin
 ```
 
-`--list-skills` consulta a pasta `skills/` da referência informada por `--ref`
+`--list-sk` consulta a pasta `skills/` da referência informada por `--ref`
 e lista apenas as skills disponíveis no repositório. A instalação aceita
 somente skills existentes nessa pasta.
+
+Com `--local`, o valor de `--skill` deve ser o diretório local da skill. O nome
+do diretório será usado como nome da skill instalada, e o diretório deve conter
+um arquivo `SKILL.md`.
 
 Modelos suportados: `codex`, `claude`, `devin`, `cursor`, `gemini`, `windsurf`
 e `copilot`. Por padrão, uma skill é instalada em `~/.<model>/skills/<skill>`.
@@ -32,8 +37,29 @@ Ao informar um `--os` diferente do sistema em execução, informe também
 ## Build
 
 ```bash
-go build -o rayskills .
-go test -race ./...
+make build
+make test
+```
+
+O build é gerado em `bin/rayskills` ou `bin/rayskills.exe`.
+
+Para instalar o executável em `~/rayskills/bin` e adicionar esse diretório ao
+`PATH` do usuário:
+
+```bash
+make install
+```
+
+No Linux e macOS, abra um novo terminal ou carregue novamente o arquivo de perfil.
+No Windows, execute o Makefile em um ambiente com `make`, Go e PowerShell
+disponíveis e abra um novo terminal após a instalação.
+
+O instalador adiciona `~/rayskills/bin` ao `PATH` apenas uma vez.
+
+Para remover o executável instalado e a entrada de `PATH` criada:
+
+```bash
+make uninstall
 ```
 
 ## Releases

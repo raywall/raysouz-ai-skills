@@ -107,6 +107,67 @@ func TestServiceInstallDryRun(t *testing.T) {
 	}
 }
 
+func TestServiceInstallLocal(t *testing.T) {
+	t.Parallel()
+
+	sourceDirectory := filepath.Join(t.TempDir(), "local-example")
+	if err := os.MkdirAll(filepath.Join(sourceDirectory, "references"), 0o755); err != nil {
+		t.Fatalf("create local skill: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDirectory, "SKILL.md"), []byte("# Local"), 0o644); err != nil {
+		t.Fatalf("write local SKILL.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDirectory, "references", "info.md"), []byte("info"), 0o644); err != nil {
+		t.Fatalf("write local reference: %v", err)
+	}
+
+	remoteSource := &fakeSkillSource{}
+	destination := t.TempDir()
+	service := NewService(remoteSource, io.Discard)
+
+	err := service.Execute(context.Background(), Options{
+		Model:       "codex",
+		OS:          "auto",
+		Skill:       sourceDirectory,
+		Local:       true,
+		Destination: destination,
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if remoteSource.called {
+		t.Fatal("remote skill source was called during local installation")
+	}
+	for _, relative := range []string{"SKILL.md", filepath.Join("references", "info.md")} {
+		if _, err := os.Stat(filepath.Join(destination, "local-example", relative)); err != nil {
+			t.Fatalf("installed local file %q: %v", relative, err)
+		}
+	}
+}
+
+func TestServiceRejectsLocalDirectoryWithoutSkillFile(t *testing.T) {
+	t.Parallel()
+
+	sourceDirectory := filepath.Join(t.TempDir(), "invalid-local")
+	if err := os.MkdirAll(sourceDirectory, 0o755); err != nil {
+		t.Fatalf("create local directory: %v", err)
+	}
+
+	service := NewService(&fakeSkillSource{}, io.Discard)
+	err := service.Execute(context.Background(), Options{
+		Model: "codex",
+		OS:    "auto",
+		Skill: sourceDirectory,
+		Local: true,
+	})
+	if err == nil {
+		t.Fatal("Execute() error = nil, want invalid options error")
+	}
+	if !strings.Contains(err.Error(), "must contain SKILL.md") {
+		t.Fatalf("Execute() error = %v, want missing SKILL.md explanation", err)
+	}
+}
+
 func TestServiceConfigure(t *testing.T) {
 	workingDirectory := t.TempDir()
 	previous, err := os.Getwd()

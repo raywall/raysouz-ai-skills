@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Context Designer"
+  short_description: "Design bounded contexts and service models"
+  default_prompt: "Separate the functional specification into bounded contexts, aggregates, models, events, and service blueprints."

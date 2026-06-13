@@ -1,0 +1,4 @@
+interface:
+  display_name: "Business Rule Simulator"
+  short_description: "Generate executable business-rule simulations"
+  default_prompt: "Generate Business Rules Studio scripts and scenarios from the supplied rules and functional specification."
