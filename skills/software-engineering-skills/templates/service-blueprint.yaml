@@ -1,0 +1,21 @@
+schema_version: "1.0"
+service:
+  id: SVC-001
+  name: example-service
+  context_id: CTX-001
+  purpose: ""
+  runtime:
+    aws_compute: undecided
+    language: go
+  inbound: []
+  outbound: []
+  data_ownership: []
+  use_cases: []
+  business_rules: []
+  domain_models: []
+  quality_attributes: []
+  observability: []
+  security: []
+  decisions: []
+  gaps: []
+  traceability: []

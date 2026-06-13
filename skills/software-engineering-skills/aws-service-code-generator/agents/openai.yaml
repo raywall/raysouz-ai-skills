@@ -1,0 +1,4 @@
+interface:
+  display_name: "AWS Service Code Generator"
+  short_description: "Generate Go services for AWS targets"
+  default_prompt: "Implement the selected service blueprint in Go for the specified AWS runtime and integrations."

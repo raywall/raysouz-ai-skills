@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Factory Orchestrator"
+  short_description: "Orchestrate specification-to-software generation"
+  default_prompt: "Transform an evidence-backed business analysis into validated specifications, domain designs, and generated software artifacts."

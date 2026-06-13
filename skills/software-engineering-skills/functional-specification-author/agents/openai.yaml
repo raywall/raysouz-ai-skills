@@ -1,0 +1,4 @@
+interface:
+  display_name: "Functional Specification Author"
+  short_description: "Create traceable functional specifications"
+  default_prompt: "Create a technology-neutral functional specification from the supplied business capability analysis."

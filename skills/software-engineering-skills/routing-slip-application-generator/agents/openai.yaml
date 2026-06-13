@@ -1,0 +1,4 @@
+interface:
+  display_name: "Routing Slip Application Generator"
+  short_description: "Generate routing-slip workflows and runtime apps"
+  default_prompt: "Generate routing-slip workflows, configuration, runtime bootstrap, and test payloads from the supplied specification."
